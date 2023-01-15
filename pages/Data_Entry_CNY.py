@@ -85,7 +85,7 @@ with form:
 
     amt = st.number_input("Amount: (negative for exp, positiv for inc)", key='amt')
 
-    purpose = st.selectbox("Purpose:", key='purpose', options=('帮补', 'Transfer to Sugar', 'Transfer to May', 'Others'))
+    purpose = st.selectbox("Purpose:", key='purpose', options=('帮补', 'Transfer to Sugar', 'Transfer to May', 'WeChat to Alipay', 'Alipay to WeChat', 'Others'))
 
     comment = st.text_area("Comment:", key='comment')
 
