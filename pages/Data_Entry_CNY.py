@@ -69,9 +69,9 @@ def add_row_to_gsheet(gsheet_connector, row) -> None:
 
 def clear_form():
     st.session_state["code"] = ""
-    st.session_state["account"] = ""
+    # st.session_state["account"] = ""
     st.session_state["amt"] = 0
-    st.session_state["purpose"] = ""
+    # st.session_state["purpose"] = ""
     st.session_state["comment"] = ""
 
 gsheet_connector = connect_to_gsheet()
