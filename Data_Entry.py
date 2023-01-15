@@ -97,7 +97,9 @@ with form:
 
     amt = st.number_input("Amount: (negative for exp, positiv for inc)", key='amt')
 
-    purpose = st.selectbox("Purpose:", key='purpose', options=('Living expenses', 'Rent', 'Phone and Internet', 'Other contracts', 'Exchange to CNY', 'Vacation', 'Entertainment'))
+    purpose = st.selectbox("Purpose:", key='purpose', options=('Living expenses', 'Rent', 'Phone and Internet',
+                                                               'Other contracts', 'Exchange to CNY', 'Vacation',
+                                                               'Entertainment', 'Salary', 'Scholarship'))
 
     comment = st.text_area("Comment:", key='comment')
 
