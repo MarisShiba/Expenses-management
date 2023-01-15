@@ -11,17 +11,6 @@ st.set_page_config(
     page_icon="✍️"
 )
 
-# # Create a connection object.
-# credentials = service_account.Credentials.from_service_account_info(
-#     dict(st.secrets["gcp_service_account"]),
-#     scopes=[
-#         "https://www.googleapis.com/auth/spreadsheets",
-#     ],
-# )
-#
-# conn = connect(credentials=credentials)
-#
-
 
 SCOPE = "https://www.googleapis.com/auth/spreadsheets"
 SPREADSHEET_ID = "1Vv9eqth-gYgCof_5puEX473BeYKnzJukDC0vrZVyFqU"
