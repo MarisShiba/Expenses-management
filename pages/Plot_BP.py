@@ -1,22 +1,32 @@
 import google_auth_httplib2
 import httplib2
 import pandas as pd
-import numpy as np
 import streamlit as st
-import plotly.express as px
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import HttpRequest
 
+st.set_page_config(
+    page_title="Weekly Transaction Data Entry (CNY)",
+    page_icon="✍️"
+)
+
+# # Create a connection object.
+# credentials = service_account.Credentials.from_service_account_info(
+#     dict(st.secrets["gcp_service_account"]),
+#     scopes=[
+#         "https://www.googleapis.com/auth/spreadsheets",
+#     ],
+# )
+#
+# conn = connect(credentials=credentials)
+#
+
+
 SCOPE = "https://www.googleapis.com/auth/spreadsheets"
-SPREADSHEET_ID = "1E337krN2CW7qzDCz6exUbT1KbY4Treol6o1UaY3yUk8"
+SPREADSHEET_ID = "1Vv9eqth-gYgCof_5puEX473BeYKnzJukDC0vrZVyFqU"
 
-st.set_page_config(page_title="Plotting BP", page_icon="📈")
-
-st.markdown("# Plotting BP History")
-
+# @st.experimental_singleton()
 def connect_to_gsheet():
     # Create a connection object.
     credentials = service_account.Credentials.from_service_account_info(
@@ -44,124 +54,61 @@ def connect_to_gsheet():
     return gsheet_connector
 
 
-def get_data(gsheet_connector, SHEET_NAME) -> pd.DataFrame:
+def get_data(gsheet_connector) -> pd.DataFrame:
     values = (
         gsheet_connector.values()
         .get(
             spreadsheetId=SPREADSHEET_ID,
-            range=f"{SHEET_NAME}!A:E",
+            range=f"CNY!A:E",
         )
         .execute()
     )
 
     df = pd.DataFrame(values["values"])
     df.columns = df.iloc[0]
-    df = df[1:]
+    df = df[-10:]
     return df
+
+
+def add_row_to_gsheet(gsheet_connector, row) -> None:
+    gsheet_connector.values().append(
+        spreadsheetId=SPREADSHEET_ID,
+        range=f"CNY!A:E",
+        body=dict(values=row),
+        valueInputOption="USER_ENTERED",
+    ).execute()
+
+def clear_form():
+    st.session_state["code"] = ""
+    st.session_state["date"] = ""
+    st.session_state["account"] = ""
+    st.session_state["amt"] = 0
+    st.session_state["purpose"] = ""
+    st.session_state["comment"] = ""
 
 gsheet_connector = connect_to_gsheet()
 
-expander = st.expander("Records of A")
-with expander:
-    df = get_data(gsheet_connector, 'Aayush')
+clear = st.button(label='Clear fields', on_click=clear_form)
+form = st.form(key="annotation")
 
-    df['SYS'] = pd.to_numeric(df['SYS'])
-    df['DIA'] = pd.to_numeric(df['DIA'])
-    df['Pulse'] = pd.to_numeric(df['Pulse'])
-    df = pd.pivot_table(df,
-                        index='Date',
-                        values=['SYS', 'DIA', 'Pulse'],
-                        aggfunc={'SYS': np.mean,
-                                 'DIA': np.mean,
-                                 'Pulse': np.mean}).reset_index(drop=False)
-    df['Date'] = pd.to_datetime(df['Date'], dayfirst=True)
-    df = df.sort_values("Date", ascending=True)
+with form:
+    date = st.date_input("Date:", key="date")
+    account = st.selectbox("Account:", key='account', options=('WeChat', 'Alipay'))
 
-    sys_mean = df['SYS'].mean()
-    dia_mean = df['DIA'].mean()
-    pulse_mean = df['Pulse'].mean()
+    amt = st.number_input("Amount: (negative for exp, positiv for inc)", key='amt')
 
-    fig = make_subplots(rows=3, cols=1,
-                        shared_xaxes=True,
-                        vertical_spacing=0.07,
-                        subplot_titles=("SYS", "DIA", "Pulse"))
+    purpose = st.selectbox("Purpose:", key='purpose', options=('帮补', 'Transfer to Sugar', 'Transfer to May', 'Others'))
 
-    fig.add_trace(go.Scatter(x=df['Date'], y=df['SYS'], name='SYS'),
-                  row=1, col=1)
+    comment = st.text_area("Comment:", key='comment')
 
-    fig.add_trace(go.Scatter(x=df['Date'], y=df['DIA'], name='DIA'),
-                  row=2, col=1)
+    codeword = st.text_area("Code word:", key='code')
+    submitted = st.form_submit_button(label="Submit")
 
-    fig.add_trace(go.Scatter(x=df['Date'], y=df['Pulse'], name='Pulse'),
-                  row=3, col=1)
-
-    fig.add_annotation(xref="paper", yref="paper", x=0.9, y=1,
-                       text=f"Avg: {round(sys_mean, 1)}", showarrow=False)
-
-    fig.add_annotation(xref="paper", yref="paper", x=0.9, y=0.6,
-                       text=f"Avg: {round(dia_mean, 1)}", showarrow=False)
-
-    fig.add_annotation(xref="paper", yref="paper", x=0.9, y=0.22,
-                       text=f"Avg: {round(pulse_mean, 1)}", showarrow=False)
-
-    fig.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)',
-                       'paper_bgcolor': 'rgba(0, 0, 0, 0)'}, height=600, width=680, showlegend=False, )
-
-    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGrey')
-    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGrey')
-    st.plotly_chart(fig)
-
-expander = st.expander("Records of B")
-with expander:
-    df = get_data(gsheet_connector, 'Jamie')
-
-    df['SYS'] = pd.to_numeric(df['SYS'])
-    df['DIA'] = pd.to_numeric(df['DIA'])
-    df['Pulse'] = pd.to_numeric(df['Pulse'])
-    df = pd.pivot_table(df,
-                        index='Date',
-                        values=['SYS', 'DIA', 'Pulse'],
-                        aggfunc={'SYS': np.mean,
-                                 'DIA': np.mean,
-                                 'Pulse': np.mean}).reset_index(drop=False)
-    df['Date'] = pd.to_datetime(df['Date'], dayfirst=True)
-    df = df.sort_values("Date", ascending=True)
-
-    sys_mean = df['SYS'].mean()
-    dia_mean = df['DIA'].mean()
-    pulse_mean = df['Pulse'].mean()
-
-    fig = make_subplots(rows=3, cols=1,
-                        shared_xaxes=True,
-                        vertical_spacing=0.07,
-                        subplot_titles=("SYS", "DIA", "Pulse"))
-
-    fig.add_trace(go.Scatter(x=df['Date'], y=df['SYS'], name='SYS'),
-                  row=1, col=1)
-
-    fig.add_trace(go.Scatter(x=df['Date'], y=df['DIA'], name='DIA'),
-                  row=2, col=1)
-
-    fig.add_trace(go.Scatter(x=df['Date'], y=df['Pulse'], name='Pulse'),
-                  row=3, col=1)
-
-    fig.add_annotation(xref="paper", yref="paper", x=0.9, y=1,
-                       text=f"Avg: {round(sys_mean, 1)}", showarrow=False)
-
-    fig.add_annotation(xref="paper", yref="paper", x=0.9, y=0.6,
-                       text=f"Avg: {round(dia_mean, 1)}", showarrow=False)
-
-    fig.add_annotation(xref="paper", yref="paper", x=0.9, y=0.22,
-                       text=f"Avg: {round(pulse_mean, 1)}", showarrow=False)
-
-    fig.update_layout({'plot_bgcolor': 'rgba(0, 0, 0, 0)',
-                       'paper_bgcolor': 'rgba(0, 0, 0, 0)'}, height=600, width=680, showlegend=False, )
-
-    fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGrey')
-    fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGrey')
-    st.plotly_chart(fig)
-
-# Streamlit widgets automatically run the script from top to bottom. Since
-# this button is not connected to any other logic, it just causes a plain
-# rerun.
-st.button("Re-run")
+if submitted and codeword=='MiChiQui':
+    add_row_to_gsheet(
+        gsheet_connector,
+        [[date.strftime("%d.%m.%Y"), account, amt, purpose, comment]],
+    )
+    st.success("Thanks! Your data was recorded.")
+elif submitted:
+    st.error("Wrong code name.")

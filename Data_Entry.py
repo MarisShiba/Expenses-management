@@ -7,11 +7,9 @@ from googleapiclient.discovery import build
 from googleapiclient.http import HttpRequest
 
 st.set_page_config(
-    page_title="Daily BP Measurements Data Entry",
+    page_title="Weekly Transaction Data Entry",
     page_icon="✍️"
 )
-
-
 
 # # Create a connection object.
 # credentials = service_account.Credentials.from_service_account_info(
@@ -26,8 +24,7 @@ st.set_page_config(
 
 
 SCOPE = "https://www.googleapis.com/auth/spreadsheets"
-SPREADSHEET_ID = "1E337krN2CW7qzDCz6exUbT1KbY4Treol6o1UaY3yUk8"
-# SHEET_NAME = "Test"
+SPREADSHEET_ID = "1Vv9eqth-gYgCof_5puEX473BeYKnzJukDC0vrZVyFqU"
 
 # @st.experimental_singleton()
 def connect_to_gsheet():
@@ -57,12 +54,12 @@ def connect_to_gsheet():
     return gsheet_connector
 
 
-def get_data(gsheet_connector, SHEET_NAME) -> pd.DataFrame:
+def get_data(gsheet_connector) -> pd.DataFrame:
     values = (
         gsheet_connector.values()
         .get(
             spreadsheetId=SPREADSHEET_ID,
-            range=f"{SHEET_NAME}!A:E",
+            range=f"EUR!A:E",
         )
         .execute()
     )
@@ -73,20 +70,21 @@ def get_data(gsheet_connector, SHEET_NAME) -> pd.DataFrame:
     return df
 
 
-def add_row_to_gsheet(gsheet_connector, SHEET_NAME, row) -> None:
+def add_row_to_gsheet(gsheet_connector, row) -> None:
     gsheet_connector.values().append(
         spreadsheetId=SPREADSHEET_ID,
-        range=f"{SHEET_NAME}!A:E",
+        range=f"EUR!A:E",
         body=dict(values=row),
         valueInputOption="USER_ENTERED",
     ).execute()
 
 def clear_form():
     st.session_state["code"] = ""
-    st.session_state["time"] = ""
-    st.session_state["pulse"] = 0
-    st.session_state["sys"] = 0
-    st.session_state["dia"] = 0
+    st.session_state["date"] = ""
+    st.session_state["account"] = ""
+    st.session_state["amt"] = 0
+    st.session_state["purpose"] = ""
+    st.session_state["comment"] = ""
 
 gsheet_connector = connect_to_gsheet()
 
@@ -95,51 +93,22 @@ form = st.form(key="annotation")
 
 with form:
     date = st.date_input("Date:", key="date")
-    cols = st.columns((1, 1))
-    time = cols[0].text_input("Time (24h):", key='time')
-    pulse = cols[1].number_input("Pulse:", key='pulse', min_value=0)
+    account = st.selectbox("Account:", key='account', options=('Jamie Sparkasse', 'Jamie N26', 'Aayush Sparkasse', 'Aayush DB', 'Aayush N26'))
 
-    cols = st.columns(2)
-    sys = cols[0].number_input("SYS:", key='sys', min_value=0)
-    dia = cols[1].number_input("DIA:", key='dia', min_value=0)
+    amt = st.number_input("Amount: (negative for exp, positiv for inc)", key='amt')
+
+    purpose = st.selectbox("Purpose:", key='purpose', options=('Living expenses', 'Rent', 'Phone and Internet', 'Other contracts', 'Exchange to CNY', 'Vacation', 'Entertainment'))
+
+    comment = st.text_area("Comment:", key='comment')
 
     codeword = st.text_area("Code word:", key='code')
     submitted = st.form_submit_button(label="Submit")
 
-
-if submitted and codeword=='Aayush Marishi':
-    if len(time)==5:
-        if time[2]==':':
-            add_row_to_gsheet(
-                gsheet_connector,
-                'Aayush',
-                [[date.strftime("%d.%m.%Y"), str(time)[:5], sys, dia, pulse]],
-            )
-            st.success("Thanks! Your data was recorded.")
-        else:
-            st.error("Wrong time format.")
-    else:
-        st.error("Wrong time format.")
-elif submitted and codeword=='Jamie Liang':
-    if len(time)==5:
-        if time[2]==':':
-            add_row_to_gsheet(
-                gsheet_connector,
-                'Jamie',
-                [[date.strftime("%d.%m.%Y"), str(time)[:5], sys, dia, pulse]],
-            )
-            st.success("Thanks! Your data was recorded.")
-        else:
-            st.error("Wrong time format.")
-    else:
-        st.error("Wrong time format.")
+if submitted and codeword=='MiChiQui':
+    add_row_to_gsheet(
+        gsheet_connector,
+        [[date.strftime("%d.%m.%Y"), account, amt, purpose, comment]],
+    )
+    st.success("Thanks! Your data was recorded.")
 elif submitted:
     st.error("Wrong code name.")
-
-expander = st.expander("See all records of A")
-with expander:
-    st.dataframe(get_data(gsheet_connector, 'Aayush'))
-
-expander2 = st.expander("See all records of B")
-with expander2:
-    st.dataframe(get_data(gsheet_connector, 'Jamie'))
