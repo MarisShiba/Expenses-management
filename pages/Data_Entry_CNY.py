@@ -8,7 +8,7 @@ from googleapiclient.http import HttpRequest
 
 st.set_page_config(
     page_title="Weekly Transaction Data Entry (CNY)",
-    page_icon="✍️"
+    page_icon="💰"
 )
 
 
